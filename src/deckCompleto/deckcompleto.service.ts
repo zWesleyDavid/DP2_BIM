@@ -12,8 +12,13 @@ export class DeckCompletoService {
         @InjectModel('Deck') private deckModel: Model<DeckDocument>,
     ) { }
 
-    async getAllDecks() {
-        return this.deckModel.find().exec();
+    async getAllDecks(): Promise<DeckDocument[]> {
+        try {
+            const decks = await this.deckModel.find().exec();
+            return decks;
+        } catch (error) {
+            throw new Error(`Erro ao buscar os decks: ${error.message}`);
+        }
     }
 
     async getCommanderAndDeck(nomeComandante: string) {

@@ -5,6 +5,7 @@ import { DeckCompletoService } from './deckcompleto.service';
 // import { RolesGuard } from 'src/auth/roles/roles.guard';
 // import { Role } from 'src/auth/roles/enums/roles.enum';
 import { Request } from 'express';
+import { DeckDocument } from './deck.schema';
 
 @Controller('deckcompleto')
 export class DeckCompletoController {
@@ -19,8 +20,8 @@ export class DeckCompletoController {
 
   // @UseGuards(AuthGuard, RolesGuard)
   // @Roles(Role.Admin) 
-  @Get('/all')
-  async getAllDecks() {
+  @Get()
+  async getAllDecks(): Promise<DeckDocument[]> {
     const decks = await this.deckCompletoService.getAllDecks();
     return decks;
   }
