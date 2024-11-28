@@ -8,9 +8,8 @@ import { DeckDocument } from './deck.schema';
 export class DeckCompletoService {
     constructor(
         private readonly httpService: HttpService,
-
         @InjectModel('Deck') private deckModel: Model<DeckDocument>,
-    ) { }
+    ) {}
 
     async getAllDecks(): Promise<DeckDocument[]> {
         try {
@@ -24,23 +23,18 @@ export class DeckCompletoService {
     async getCommanderAndDeck(nomeComandante: string) {
         const commanderUrl = `https://api.magicthegathering.io/v1/cards?name=${encodeURIComponent(nomeComandante)}`;
 
-        // Buscar o comandante
         const commanderResponse = await this.httpService.get(commanderUrl).toPromise();
-        const commander = commanderResponse.data.cards[0]; // Assumindo que o comandante é o primeiro resultado
+        const commander = commanderResponse.data.cards[0];
 
         if (!commanderResponse.data.cards || commanderResponse.data.cards.length === 0) {
             throw new Error('Comandante não encontrado!');
         }
 
         let deckUrl = '';
-
-        // Verificar se o comandante tem cores
         if (commander.colors && commander.colors.length > 0) {
             const colors = commander.colors.join(',');
-            // Buscar 99 cartas com base nas cores do comandante
             deckUrl = `https://api.magicthegathering.io/v1/cards?colors=${colors}&pageSize=99`;
         } else {
-            // Se o comandante for incolor, buscar 99 cartas sem filtro de cores
             deckUrl = `https://api.magicthegathering.io/v1/cards?pageSize=99`;
         }
 
@@ -52,7 +46,6 @@ export class DeckCompletoService {
             type: card.type,
         }));
 
-        // Gerar o JSON apenas com as informações essenciais
         const deckJson = {
             commander: {
                 name: commander.name,
@@ -64,11 +57,44 @@ export class DeckCompletoService {
             deck,
         };
 
-        // Salvar no MongoDB
         const createdDeck = new this.deckModel(deckJson);
         await createdDeck.save();
 
         return deckJson;
     }
 
+    async getDeckByName(name: string): Promise<DeckDocument> {
+        try {
+            const deck = await this.deckModel.findOne({ 'commander.name': name }).exec();
+            if (!deck) {
+                throw new Error('Deck não encontrado!');
+            }
+            return deck;
+        } catch (error) {
+            throw new Error(`Erro ao buscar o deck: ${error.message}`);
+        }
+    }
+
+    async updateDeckByName(name: string, updateData: Partial<DeckDocument>): Promise<DeckDocument> {
+        try {
+            const updatedDeck = await this.deckModel.findOneAndUpdate({ 'commander.name': name }, updateData, { new: true }).exec();
+            if (!updatedDeck) {
+                throw new Error('Deck não encontrado para atualização!');
+            }
+            return updatedDeck;
+        } catch (error) {
+            throw new Error(`Erro ao atualizar o deck: ${error.message}`);
+        }
+    }
+
+    async deleteDeckByName(name: string): Promise<void> {
+        try {
+            const result = await this.deckModel.findOneAndDelete({ 'commander.name': name }).exec();
+            if (!result) {
+                throw new Error('Deck não encontrado para exclusão!');
+            }
+        } catch (error) {
+            throw new Error(`Erro ao excluir o deck: ${error.message}`);
+        }
+    }
 }
