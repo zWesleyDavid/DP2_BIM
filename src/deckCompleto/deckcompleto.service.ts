@@ -3,12 +3,14 @@ import { HttpService } from '@nestjs/axios';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { DeckDocument } from './deck.schema';
+import { RabbitMQService } from './rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class DeckCompletoService {
     constructor(
         private readonly httpService: HttpService,
         @InjectModel('Deck') private deckModel: Model<DeckDocument>,
+        private readonly rabbitMQService: RabbitMQService, // Adicionado RabbitMQService
     ) {}
 
     async getAllDecks(): Promise<DeckDocument[]> {
@@ -59,6 +61,12 @@ export class DeckCompletoService {
 
         const createdDeck = new this.deckModel(deckJson);
         await createdDeck.save();
+
+        // Enviar mensagem para RabbitMQ
+        await this.rabbitMQService.sendMessage('import_deck', {
+            commander: deckJson.commander,
+            deck: deckJson.deck,
+        });
 
         return deckJson;
     }
